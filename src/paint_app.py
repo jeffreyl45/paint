@@ -14,7 +14,7 @@ class PaintApp:
         """Initialize the paint application."""
         # Initialize components
         self.gesture_recognizer = GestureRecognizer()
-        self.canvas = Canvas()
+        self.canvas = Canvas(width=1000, height=700)
         self.ui = UI()
         
         # Drawing state
@@ -278,9 +278,13 @@ class PaintApp:
             print("Error: Could not open webcam")
             return
         
+        # Create window and set it to the exact canvas size
+        cv2.namedWindow('Fingertip Paint', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Fingertip Paint', self.canvas.width, self.canvas.height)
+        
         print("Fingertip Paint App Started!")
         print("Gestures:")
-        print("  - Point with index finger to draw")
+        print("  - Point with index finger CLOSE to camera to draw")
         print("  - Show all fingers (open palm) to select colors/buttons")
         print("\nKeyboard Controls:")
         print("  - '+' or '=' : Increase brush size")

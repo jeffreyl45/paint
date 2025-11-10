@@ -72,8 +72,8 @@ class UI:
         dynamic_palette_height = int(self.palette_height * scale)
         
         # Calculate how much space we need for buttons on the right
-        # Reserve space for brush indicator, eraser, and clear buttons
-        reserved_width = int(350 * scale)
+        # Reserve more space to prevent overlap
+        reserved_width = int(450 * scale)
         available_width = max(frame_width - reserved_width, frame_width // 2)
         
         color_box_width = available_width // len(self.colors)
@@ -205,32 +205,33 @@ class UI:
             frame: Frame to draw on
         """
         width = frame.shape[1]
+        height = frame.shape[0]
         scale = self.get_scale_factor(width)
         
         # Dynamic text based on screen size
         if width < 600:
             instructions = [
                 "Point to draw | Palm to select",
-                "+/- brush | v:cam | s:save | c:clear | q:quit"
+                "+/- brush | v:cam | s:save | q:quit"
             ]
         elif width < 800:
             instructions = [
-                "Point finger to draw",
-                "Palm (5 fingers) to select",
-                "+/- brush | v:cam | s:save | c:clear | q:quit"
+                "Point finger to draw | Palm to select",
+                "+/- brush | v:cam | s:save | q:quit"
             ]
         else:
             instructions = [
-                "Point index finger to draw",
+                "Point index finger close to camera to draw",
                 "Show palm (5 fingers) to select color/button",
-                "Press '+'/'-' brush | 'v' webcam | 's' save | 'c' clear | 'q' quit" 
+                "'+'/'-' brush size | 'v' webcam | 's' save | 'c' clear | 'q' quit" 
             ]
         
-        text_scale = 0.3 + (0.2 * scale)
+        text_scale = 0.35 + (0.15 * scale)
         text_thickness = max(1, int(1 * scale))
-        line_spacing = int(25 * scale)
+        line_spacing = int(22 * scale)
         
-        y_offset = frame.shape[0] - int(80 * scale)
+        # Position instructions higher to avoid overlap with status
+        y_offset = height - int(100 * scale)
         for i, text in enumerate(instructions):
             cv2.putText(frame, text, (10, y_offset + i * line_spacing), 
                        cv2.FONT_HERSHEY_SIMPLEX, text_scale, (50, 50, 50), text_thickness)
@@ -247,11 +248,12 @@ class UI:
         width = frame.shape[1]
         scale = self.get_scale_factor(width)
         
-        text_scale = 0.4 + (0.3 * scale)
+        text_scale = 0.5 + (0.3 * scale)
         text_thickness = max(1, int(2 * scale))
         
-        cv2.putText(frame, status, (10, h - int(100 * scale)), 
-                   cv2.FONT_HERSHEY_SIMPLEX, text_scale, (0, 255, 0), text_thickness)
+        # Position status at the very bottom, below instructions
+        cv2.putText(frame, status, (10, h - int(15 * scale)), 
+                   cv2.FONT_HERSHEY_SIMPLEX, text_scale, (0, 200, 0), text_thickness)
     
     def draw(self, frame, current_color, eraser_mode, status, brush_size, show_webcam=False):
         """
