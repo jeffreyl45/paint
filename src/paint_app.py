@@ -2,7 +2,6 @@
 Main paint application logic.
 """
 import cv2
-import numpy as np
 from src.gesture_recognizer import GestureRecognizer
 from src.canvas import Canvas
 from src.ui import UI
@@ -20,11 +19,15 @@ class PaintApp:
         
         # Drawing state
         self.current_color = (0, 0, 255)  # Red in BGR
-        self.brush_size = 5
+        self.brush_size = 3  # Smaller default size for better control
         self.eraser_mode = False
         
         # Camera
         self.cap = None
+        
+        # Video feed window size (smaller, just for hand tracking)
+        self.video_width = 320
+        self.video_height = 240
     
     def process_drawing_gesture(self, x, y, frame_height, frame_width):
         """
@@ -96,25 +99,38 @@ class PaintApp:
             self.canvas.reset_position()
             return False
     
-    def blend_canvas_with_frame(self, frame):
+    def create_display_with_video_overlay(self, canvas_img, video_frame):
         """
-        Blend the canvas drawings with the camera frame.
+        Create display with canvas and small video overlay.
         
         Args:
-            frame: Camera frame
+            canvas_img: Canvas image
+            video_frame: Video frame
             
         Returns:
-            numpy.ndarray: Blended frame
+            numpy.ndarray: Combined display
         """
-        canvas_img = self.canvas.get_canvas()
+        # Start with canvas
+        display = canvas_img.copy()
         
-        # Create mask from canvas
-        mask = cv2.cvtColor(canvas_img, cv2.COLOR_BGR2GRAY)
-        mask = cv2.threshold(mask, 250, 255, cv2.THRESH_BINARY_INV)[1]
-        mask_3channel = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        # Resize video frame to small size
+        small_video = cv2.resize(video_frame, (self.video_width, self.video_height))
         
-        # Apply canvas drawings on top of frame
-        return np.where(mask_3channel > 0, canvas_img, frame)
+        # Position for video overlay (bottom right corner)
+        y_offset = display.shape[0] - self.video_height - 10
+        x_offset = display.shape[1] - self.video_width - 10
+        
+        # Add border to video
+        cv2.rectangle(display, 
+                     (x_offset - 2, y_offset - 2), 
+                     (x_offset + self.video_width + 2, y_offset + self.video_height + 2),
+                     (0, 0, 0), 2)
+        
+        # Overlay video on canvas
+        display[y_offset:y_offset + self.video_height, 
+                x_offset:x_offset + self.video_width] = small_video
+        
+        return display
     
     def process_frame(self, frame):
         """
@@ -130,27 +146,49 @@ class PaintApp:
         frame = cv2.flip(frame, 1)
         h, w, _ = frame.shape
         
-        # Resize canvas to match frame if needed
-        self.canvas.resize(w, h)
+        # Keep canvas at a fixed size (800x600)
+        canvas_width = 1000
+        canvas_height = 700
+        if self.canvas.width != canvas_width or self.canvas.height != canvas_height:
+            self.canvas.resize(canvas_width, canvas_height)
         
         # Convert to RGB for MediaPipe
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.gesture_recognizer.process_frame(rgb_frame)
         
+        # Create video preview frame with hand landmarks
+        video_preview = frame.copy()
+        
         # Process hand landmarks
         drawing = False
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
-                # Draw hand landmarks on frame
-                self.gesture_recognizer.draw_landmarks(frame, hand_landmarks)
+                # Draw hand landmarks on video preview
+                self.gesture_recognizer.draw_landmarks(video_preview, hand_landmarks)
                 
-                # Process hand gestures
-                drawing = self.process_hand(hand_landmarks, frame.shape)
+                # Map coordinates from video to canvas
+                x, y = self.gesture_recognizer.get_index_finger_position(hand_landmarks, frame.shape)
+                # Scale coordinates to canvas size
+                canvas_x = int(x * canvas_width / w)
+                canvas_y = int(y * canvas_height / h)
+                
+                # Create modified hand landmarks for canvas coordinates
+                if self.gesture_recognizer.is_index_finger_up(hand_landmarks):
+                    self.process_drawing_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
+                    drawing = True
+                elif self.gesture_recognizer.is_all_fingers_up(hand_landmarks):
+                    self.canvas.reset_position()
+                    self.process_selection_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
+                else:
+                    self.canvas.reset_position()
         else:
             self.canvas.reset_position()
         
-        # Blend canvas with frame
-        frame_with_canvas = self.blend_canvas_with_frame(frame)
+        # Get canvas
+        canvas_display = self.canvas.get_canvas()
+        
+        # Create display with video overlay
+        display = self.create_display_with_video_overlay(canvas_display, video_preview)
         
         # Determine status
         if drawing:
@@ -161,9 +199,9 @@ class PaintApp:
             status = "NO HAND DETECTED"
         
         # Draw UI
-        self.ui.draw(frame_with_canvas, self.current_color, self.eraser_mode, status)
+        self.ui.draw(display, self.current_color, self.eraser_mode, status, self.brush_size)
         
-        return frame_with_canvas, drawing
+        return display, drawing
     
     def save_canvas(self):
         """Save the current canvas to a file."""
@@ -185,8 +223,12 @@ class PaintApp:
         print("Gestures:")
         print("  - Point with index finger to draw")
         print("  - Show all fingers (open palm) to select colors/buttons")
-        print("  - Press 's' to save your drawing")
-        print("  - Press 'q' to quit")
+        print("\nKeyboard Controls:")
+        print("  - '+' or '=' : Increase brush size")
+        print("  - '-' or '_' : Decrease brush size")
+        print("  - 's' : Save your drawing")
+        print("  - 'c' : Clear canvas")
+        print("  - 'q' : Quit")
         
         try:
             while True:
@@ -207,6 +249,15 @@ class PaintApp:
                     break
                 elif key == ord('s'):
                     self.save_canvas()
+                elif key == ord('c'):
+                    self.canvas.clear()
+                    print("Canvas cleared")
+                elif key in [ord('+'), ord('=')]:
+                    self.brush_size = min(50, self.brush_size + 1)
+                    print(f"Brush size: {self.brush_size}")
+                elif key in [ord('-'), ord('_')]:
+                    self.brush_size = max(1, self.brush_size - 1)
+                    print(f"Brush size: {self.brush_size}")
         
         finally:
             # Cleanup

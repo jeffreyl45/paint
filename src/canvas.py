@@ -3,6 +3,7 @@ Canvas module for drawing operations.
 """
 import cv2
 import numpy as np
+from collections import deque
 
 
 class Canvas:
@@ -23,10 +24,13 @@ class Canvas:
         self.canvas = np.ones((height, width, 3), dtype=np.uint8) * np.array(bg_color, dtype=np.uint8)
         self.prev_x = None
         self.prev_y = None
+        
+        # Smoothing parameters
+        self.position_buffer = deque(maxlen=5)  # Store last 5 positions for smoothing
     
     def draw_line(self, x, y, color, thickness):
         """
-        Draw a line from previous position to current position.
+        Draw a line from previous position to current position with smoothing.
         
         Args:
             x: Current x coordinate
@@ -34,13 +38,31 @@ class Canvas:
             color: Line color in BGR format
             thickness: Line thickness
         """
+        # Add position to buffer
+        self.position_buffer.append((x, y))
+        
+        # Calculate smoothed position
+        if len(self.position_buffer) > 0:
+            avg_x = int(sum(pos[0] for pos in self.position_buffer) / len(self.position_buffer))
+            avg_y = int(sum(pos[1] for pos in self.position_buffer) / len(self.position_buffer))
+            smoothed_x, smoothed_y = avg_x, avg_y
+        else:
+            smoothed_x, smoothed_y = x, y
+        
         if self.prev_x is not None and self.prev_y is not None:
-            cv2.line(self.canvas, (self.prev_x, self.prev_y), (x, y), color, thickness)
-        self.prev_x, self.prev_y = x, y
+            # Draw smooth line
+            cv2.line(self.canvas, (self.prev_x, self.prev_y), (smoothed_x, smoothed_y), 
+                    color, thickness, cv2.LINE_AA)
+        else:
+            # Draw a dot for the starting point
+            cv2.circle(self.canvas, (smoothed_x, smoothed_y), thickness // 2, color, -1)
+            
+        self.prev_x, self.prev_y = smoothed_x, smoothed_y
     
     def reset_position(self):
         """Reset the previous drawing position."""
         self.prev_x, self.prev_y = None, None
+        self.position_buffer.clear()
     
     def clear(self):
         """Clear the canvas to background color."""

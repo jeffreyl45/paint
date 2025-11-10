@@ -4,14 +4,17 @@ A gesture-controlled paint application that lets you draw using your fingertips!
 
 ## Features
 
-- **Fingertip Drawing**: Point with your index finger to draw
+- **Fingertip Drawing**: Point with your index finger to draw on a clean white canvas
 - **Gesture Controls**: Use hand gestures to select colors and control the app
 - **8 Color Palette**: Choose from Red, Green, Blue, Yellow, Magenta, Cyan, Black, and White
 - **Eraser Tool**: Toggle eraser mode to remove parts of your drawing
-- **Clear Canvas**: Start fresh with one gesture
+- **Clear Canvas**: Clear all drawings with one gesture or keyboard shortcut
+- **Adjustable Brush Size**: Fine-tune brush size (1-50px) for precise control
+- **Smooth Drawing**: Advanced smoothing algorithm for better line quality
 - **Save Functionality**: Save your artwork as PNG images
 - **Real-time Hand Tracking**: Powered by MediaPipe for accurate hand detection
 - **Modular Architecture**: Clean, maintainable code structure
+- **Video Preview**: Small webcam overlay to see your hand movements
 
 ## Installation
 
@@ -64,35 +67,47 @@ paint/
 
 ## Keyboard Shortcuts
 
+- `+` or `=` - Increase brush size
+- `-` or `_` - Decrease brush size  
+- `C` - Clear canvas (Clear All)
 - `S` - Save current drawing
 - `Q` - Quit application
 
 ## How to Use
 
 1. **Launch the app** - Your webcam will activate
-2. **Position yourself** - Make sure your hand is visible in the frame
+2. **Position yourself** - Make sure your hand is visible in the small video preview (bottom right)
 3. **Draw**: 
    - Point with your index finger (like pointing at something)
-   - Move your finger around to draw
-4. **Change colors**:
+   - Move your finger around to draw on the white canvas
+   - The app uses smoothing to make your lines cleaner
+4. **Adjust brush size**:
+   - Press `+` to make the brush larger
+   - Press `-` to make the brush smaller
+   - Perfect for drawing fine details or bold strokes!
+5. **Change colors**:
    - Open your palm (show all 5 fingers)
    - Move your hand over a color in the palette at the top
-5. **Use eraser**:
+6. **Use eraser**:
    - Open your palm
    - Move over the "ERASE" button
-6. **Clear canvas**:
-   - Open your palm
-   - Move over the "CLEAR" button
-7. **Save your art**:
+7. **Clear everything**:
+   - Open your palm and move over "CLEAR" button, OR
+   - Press 'C' on your keyboard
+8. **Save your art**:
    - Press 'S' on your keyboard
 
 ## Tips for Best Results
 
 - 🔆 Ensure good lighting for better hand detection
-- 🖐️ Keep your hand clearly visible in the camera frame
+- 🖐️ Keep your hand clearly visible in the video preview (bottom right corner)
 - 📏 Maintain a moderate distance from the camera (arm's length works well)
 - 🎨 Practice the gestures - it becomes natural quickly!
 - 🔄 If tracking is lost, simply reposition your hand in view
+- ✏️ Use smaller brush sizes (1-3px) for fine details like dots
+- 🖌️ Use larger brush sizes (10-20px) for bold strokes
+- 🤚 Hold your drawing gesture steady for smoother lines
+- 📺 The white canvas is your main workspace - the video preview just shows hand tracking
 
 ## Architecture
 
