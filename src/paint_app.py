@@ -5,6 +5,7 @@ import cv2
 from src.gesture_recognizer import GestureRecognizer
 from src.canvas import Canvas
 from src.ui import UI
+from src.filters import ExponentialSmoothing, OutlierGuard
 
 
 class PaintApp:
@@ -32,11 +33,22 @@ class PaintApp:
         # Toggle for showing/hiding webcam
         self.show_webcam = False
         
-        # Depth-based drawing control
-        self.depth_threshold = -0.05  # Adjust this for sensitivity
+                # Hysteresis thresholds for depth-based drawing (Schmitt trigger)
+        self.z_on_threshold = -0.06   # Start drawing when z < this
+        self.z_off_threshold = -0.04  # Stop drawing when z > this
+        self.debounce_frames = 2      # Require only 2 frames for faster response
+        
+        # Depth state tracking
         self.cursor_x = None
         self.cursor_y = None
         self.is_close_enough = False
+        self.on_count = 0   # Frames where finger is close
+        self.off_count = 0  # Frames where finger is far
+        
+        # Lightweight exponential smoothing filters (much faster than One Euro)
+        self.filter_x = ExponentialSmoothing(alpha=0.6)  # Higher alpha = more responsive
+        self.filter_y = ExponentialSmoothing(alpha=0.6)
+        self.filter_z = ExponentialSmoothing(alpha=0.5)
     
     def process_drawing_gesture(self, x, y, frame_height, frame_width):
         """
@@ -204,26 +216,54 @@ class PaintApp:
                 # Draw hand landmarks on video preview
                 self.gesture_recognizer.draw_landmarks(video_preview, hand_landmarks)
                 
-                # Map coordinates from video to canvas
-                x, y = self.gesture_recognizer.get_index_finger_position(hand_landmarks, frame.shape)
-                # Scale coordinates to canvas size
-                canvas_x = int(x * canvas_width / w)
-                canvas_y = int(y * canvas_height / h)
+                # Get raw coordinates and depth
+                raw_x, raw_y = self.gesture_recognizer.get_index_finger_position(hand_landmarks, frame.shape)
+                raw_z = self.gesture_recognizer.get_finger_depth(hand_landmarks)
                 
-                # Always update cursor position
+                # Apply lightweight exponential smoothing
+                filtered_x = self.filter_x.filter(raw_x)
+                filtered_y = self.filter_y.filter(raw_y)
+                filtered_z = self.filter_z.filter(raw_z)
+                
+                # Scale coordinates to canvas size
+                canvas_x = int(filtered_x * canvas_width / w)
+                canvas_y = int(filtered_y * canvas_height / h)
+                
+                # Update cursor position
                 self.cursor_x = canvas_x
                 self.cursor_y = canvas_y
                 
-                # Check if finger is close enough to camera (depth check)
-                self.is_close_enough = self.gesture_recognizer.is_finger_close_enough(
-                    hand_landmarks, self.depth_threshold)
+                # Hysteresis for depth (Schmitt trigger)
+                prev_close_enough = self.is_close_enough
+                
+                if filtered_z < self.z_on_threshold:
+                    self.on_count += 1
+                    self.off_count = 0
+                else:
+                    self.on_count = 0
+                
+                if filtered_z > self.z_off_threshold:
+                    self.off_count += 1
+                else:
+                    self.off_count = 0
+                
+                # Determine if close enough with debounce
+                self.is_close_enough = self.on_count >= self.debounce_frames
+                if self.off_count >= self.debounce_frames:
+                    self.is_close_enough = False
+                
+                # Reset canvas position when transitioning out of drawing range
+                if prev_close_enough and not self.is_close_enough:
+                    self.canvas.reset_position()
                 
                 # Drawing mode - index finger only AND close enough
                 if self.gesture_recognizer.is_index_finger_up(hand_landmarks):
                     if self.is_close_enough:
                         self.process_drawing_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
                         drawing = True
-                    # If not close enough, just show cursor but don't draw
+                    else:
+                        # Not close enough - reset to avoid connecting strokes
+                        self.canvas.reset_position()
                 elif self.gesture_recognizer.is_all_fingers_up(hand_landmarks):
                     self.canvas.reset_position()
                     self.process_selection_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
@@ -235,6 +275,12 @@ class PaintApp:
             self.canvas.reset_position()
             self.cursor_x = None
             self.cursor_y = None
+            self.on_count = 0
+            self.off_count = 0
+            # Reset filters when no hand detected
+            self.filter_x.reset()
+            self.filter_y.reset()
+            self.filter_z.reset()
         
         # Get canvas
         canvas_display = self.canvas.get_canvas()
