@@ -11,6 +11,7 @@ A gesture-controlled paint application that lets you draw using your fingertips!
 - **Clear Canvas**: Start fresh with one gesture
 - **Save Functionality**: Save your artwork as PNG images
 - **Real-time Hand Tracking**: Powered by MediaPipe for accurate hand detection
+- **Modular Architecture**: Clean, maintainable code structure
 
 ## Installation
 
@@ -23,7 +24,28 @@ pip install -r requirements.txt
 
 Run the application:
 ```bash
+python main.py
+```
+
+Or use the standalone version:
+```bash
 python fingertip_paint.py
+```
+
+## Project Structure
+
+```
+paint/
+├── main.py                          # Entry point for modular version
+├── fingertip_paint.py              # Standalone single-file version
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+└── src/                            # Modular source code
+    ├── __init__.py                # Package initialization
+    ├── paint_app.py               # Main application controller
+    ├── gesture_recognizer.py      # Hand gesture recognition
+    ├── canvas.py                  # Drawing canvas management
+    └── ui.py                      # UI rendering components
 ```
 
 ## Hand Gestures
@@ -71,6 +93,34 @@ python fingertip_paint.py
 - 📏 Maintain a moderate distance from the camera (arm's length works well)
 - 🎨 Practice the gestures - it becomes natural quickly!
 - 🔄 If tracking is lost, simply reposition your hand in view
+
+## Architecture
+
+The application is built with a modular architecture:
+
+### Components
+
+1. **GestureRecognizer** (`gesture_recognizer.py`)
+   - Hand detection using MediaPipe
+   - Gesture recognition (drawing vs selection)
+   - Finger position tracking
+
+2. **Canvas** (`canvas.py`)
+   - Drawing surface management
+   - Line rendering
+   - Save/clear operations
+
+3. **UI** (`ui.py`)
+   - Color palette rendering
+   - Button controls
+   - Status display
+   - User interaction detection
+
+4. **PaintApp** (`paint_app.py`)
+   - Main application controller
+   - Coordinates all components
+   - Frame processing pipeline
+   - Event handling
 
 ## Requirements
 
