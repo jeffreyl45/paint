@@ -124,6 +124,34 @@ class GestureRecognizer:
         y = int(index_tip.y * h)
         return x, y
     
+    def get_finger_depth(self, hand_landmarks):
+        """
+        Get the depth (z-coordinate) of the index finger tip.
+        Lower z values mean closer to camera.
+        
+        Args:
+            hand_landmarks: MediaPipe hand landmarks
+            
+        Returns:
+            float: Z-coordinate (depth) of index finger tip
+        """
+        index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
+        return index_tip.z
+    
+    def is_finger_close_enough(self, hand_landmarks, threshold=-0.05):
+        """
+        Check if index finger is close enough to the camera to activate drawing.
+        
+        Args:
+            hand_landmarks: MediaPipe hand landmarks
+            threshold: Z-coordinate threshold (more negative = closer to camera)
+            
+        Returns:
+            bool: True if finger is close enough to draw
+        """
+        depth = self.get_finger_depth(hand_landmarks)
+        return depth < threshold
+    
     def draw_landmarks(self, frame, hand_landmarks):
         """
         Draw hand landmarks on the frame.

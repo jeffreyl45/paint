@@ -31,6 +31,12 @@ class PaintApp:
         
         # Toggle for showing/hiding webcam
         self.show_webcam = False
+        
+        # Depth-based drawing control
+        self.depth_threshold = -0.05  # Adjust this for sensitivity
+        self.cursor_x = None
+        self.cursor_y = None
+        self.is_close_enough = False
     
     def process_drawing_gesture(self, x, y, frame_height, frame_width):
         """
@@ -72,6 +78,31 @@ class PaintApp:
         # Check if clicking clear button
         if self.ui.is_clear_button_clicked(x, y, frame_width):
             self.canvas.clear()
+    
+    def draw_cursor(self, display, x, y):
+        """
+        Draw a cursor at the finger position to show where drawing will occur.
+        
+        Args:
+            display: Display image
+            x: X coordinate
+            y: Y coordinate
+        """
+        if self.is_close_enough:
+            # Drawing active - show filled circle with current color
+            cv2.circle(display, (x, y), self.brush_size, self.current_color, -1, cv2.LINE_AA)
+            # Add white outline for visibility
+            cv2.circle(display, (x, y), self.brush_size + 2, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.circle(display, (x, y), self.brush_size + 3, (0, 0, 0), 1, cv2.LINE_AA)
+        else:
+            # Not close enough - show hollow circle
+            cv2.circle(display, (x, y), self.brush_size, (150, 150, 150), 1, cv2.LINE_AA)
+            # Small crosshair
+            cross_size = 5
+            cv2.line(display, (x - cross_size, y), (x + cross_size, y), 
+                    (150, 150, 150), 1, cv2.LINE_AA)
+            cv2.line(display, (x, y - cross_size), (x, y + cross_size), 
+                    (150, 150, 150), 1, cv2.LINE_AA)
     
     def process_hand(self, hand_landmarks, frame_shape):
         """
@@ -166,6 +197,8 @@ class PaintApp:
         
         # Process hand landmarks
         drawing = False
+        self.is_close_enough = False
+        
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 # Draw hand landmarks on video preview
@@ -177,17 +210,31 @@ class PaintApp:
                 canvas_x = int(x * canvas_width / w)
                 canvas_y = int(y * canvas_height / h)
                 
-                # Create modified hand landmarks for canvas coordinates
+                # Always update cursor position
+                self.cursor_x = canvas_x
+                self.cursor_y = canvas_y
+                
+                # Check if finger is close enough to camera (depth check)
+                self.is_close_enough = self.gesture_recognizer.is_finger_close_enough(
+                    hand_landmarks, self.depth_threshold)
+                
+                # Drawing mode - index finger only AND close enough
                 if self.gesture_recognizer.is_index_finger_up(hand_landmarks):
-                    self.process_drawing_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
-                    drawing = True
+                    if self.is_close_enough:
+                        self.process_drawing_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
+                        drawing = True
+                    # If not close enough, just show cursor but don't draw
                 elif self.gesture_recognizer.is_all_fingers_up(hand_landmarks):
                     self.canvas.reset_position()
                     self.process_selection_gesture(canvas_x, canvas_y, canvas_height, canvas_width)
+                    self.cursor_x = None
+                    self.cursor_y = None
                 else:
                     self.canvas.reset_position()
         else:
             self.canvas.reset_position()
+            self.cursor_x = None
+            self.cursor_y = None
         
         # Get canvas
         canvas_display = self.canvas.get_canvas()
@@ -195,11 +242,17 @@ class PaintApp:
         # Create display with video overlay
         display = self.create_display_with_video_overlay(canvas_display, video_preview)
         
+        # Draw cursor if finger is pointing
+        if self.cursor_x is not None and self.cursor_y is not None:
+            self.draw_cursor(display, self.cursor_x, self.cursor_y)
+        
         # Determine status
         if drawing:
             status = "DRAWING"
+        elif self.is_close_enough and results.multi_hand_landmarks:
+            status = "READY TO DRAW"
         elif results.multi_hand_landmarks:
-            status = "SELECTION MODE"
+            status = "MOVE CLOSER TO DRAW"
         else:
             status = "NO HAND DETECTED"
         
