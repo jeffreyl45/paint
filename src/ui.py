@@ -78,29 +78,21 @@ class UI:
         
         color_box_width = available_width // len(self.colors)
         
-        # Calculate text size based on scale
-        text_scale = 0.3 + (0.3 * scale)  # Range from 0.3 to 0.6
-        text_thickness = max(1, int(2 * scale))
-        
         for i, (color, name) in enumerate(self.colors):
             x1 = i * color_box_width
             x2 = (i + 1) * color_box_width
             
-            # Draw color box
+            # Draw color box filled
             cv2.rectangle(frame, (x1, 0), (x2, dynamic_palette_height), color, -1)
             
-            # Highlight selected color
+            # Draw black outline around each color box
+            cv2.rectangle(frame, (x1, 0), (x2, dynamic_palette_height), (0, 0, 0), 2)
+            
+            # Highlight selected color with thicker green border
             if color == current_color and not eraser_mode:
-                highlight_thickness = max(2, int(5 * scale))
+                highlight_thickness = max(3, int(6 * scale))
                 cv2.rectangle(frame, (x1, 0), (x2, dynamic_palette_height), 
                             (0, 255, 0), highlight_thickness)
-            
-            # Add text label if there's enough space
-            if color_box_width > 30:
-                label = name if color_box_width > 50 else name[:3]
-                text_y = max(15, int(20 * scale))
-                cv2.putText(frame, label, (x1 + 5, text_y), 
-                           cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), text_thickness)
     
     def draw_button(self, frame, x1, y1, x2, y2, label, is_active=False, scale=1.0):
         """
