@@ -28,6 +28,9 @@ class PaintApp:
         # Video feed window size (smaller, just for hand tracking)
         self.video_width = 320
         self.video_height = 240
+        
+        # Toggle for showing/hiding webcam
+        self.show_webcam = False
     
     def process_drawing_gesture(self, x, y, frame_height, frame_width):
         """
@@ -101,7 +104,7 @@ class PaintApp:
     
     def create_display_with_video_overlay(self, canvas_img, video_frame):
         """
-        Create display with canvas and small video overlay.
+        Create display with canvas and optional small video overlay.
         
         Args:
             canvas_img: Canvas image
@@ -113,22 +116,24 @@ class PaintApp:
         # Start with canvas
         display = canvas_img.copy()
         
-        # Resize video frame to small size
-        small_video = cv2.resize(video_frame, (self.video_width, self.video_height))
-        
-        # Position for video overlay (bottom right corner)
-        y_offset = display.shape[0] - self.video_height - 10
-        x_offset = display.shape[1] - self.video_width - 10
-        
-        # Add border to video
-        cv2.rectangle(display, 
-                     (x_offset - 2, y_offset - 2), 
-                     (x_offset + self.video_width + 2, y_offset + self.video_height + 2),
-                     (0, 0, 0), 2)
-        
-        # Overlay video on canvas
-        display[y_offset:y_offset + self.video_height, 
-                x_offset:x_offset + self.video_width] = small_video
+        # Only show webcam if enabled
+        if self.show_webcam:
+            # Resize video frame to small size
+            small_video = cv2.resize(video_frame, (self.video_width, self.video_height))
+            
+            # Position for video overlay (bottom right corner)
+            y_offset = display.shape[0] - self.video_height - 10
+            x_offset = display.shape[1] - self.video_width - 10
+            
+            # Add border to video
+            cv2.rectangle(display, 
+                         (x_offset - 2, y_offset - 2), 
+                         (x_offset + self.video_width + 2, y_offset + self.video_height + 2),
+                         (0, 0, 0), 2)
+            
+            # Overlay video on canvas
+            display[y_offset:y_offset + self.video_height, 
+                    x_offset:x_offset + self.video_width] = small_video
         
         return display
     
@@ -199,7 +204,8 @@ class PaintApp:
             status = "NO HAND DETECTED"
         
         # Draw UI
-        self.ui.draw(display, self.current_color, self.eraser_mode, status, self.brush_size)
+        self.ui.draw(display, self.current_color, self.eraser_mode, status, 
+                    self.brush_size, self.show_webcam)
         
         return display, drawing
     
@@ -226,6 +232,7 @@ class PaintApp:
         print("\nKeyboard Controls:")
         print("  - '+' or '=' : Increase brush size")
         print("  - '-' or '_' : Decrease brush size")
+        print("  - 'v' : Toggle webcam visibility")
         print("  - 's' : Save your drawing")
         print("  - 'c' : Clear canvas")
         print("  - 'q' : Quit")
@@ -252,6 +259,10 @@ class PaintApp:
                 elif key == ord('c'):
                     self.canvas.clear()
                     print("Canvas cleared")
+                elif key == ord('v'):
+                    self.show_webcam = not self.show_webcam
+                    status_msg = "visible" if self.show_webcam else "hidden"
+                    print(f"Webcam {status_msg}")
                 elif key in [ord('+'), ord('=')]:
                     self.brush_size = min(50, self.brush_size + 1)
                     print(f"Brush size: {self.brush_size}")

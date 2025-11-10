@@ -68,7 +68,8 @@ paint/
 ## Keyboard Shortcuts
 
 - `+` or `=` - Increase brush size
-- `-` or `_` - Decrease brush size  
+- `-` or `_` - Decrease brush size
+- `V` - Toggle webcam visibility (hide/show)
 - `C` - Clear canvas (Clear All)
 - `S` - Save current drawing
 - `Q` - Quit application
@@ -76,38 +77,43 @@ paint/
 ## How to Use
 
 1. **Launch the app** - Your webcam will activate
-2. **Position yourself** - Make sure your hand is visible in the small video preview (bottom right)
+2. **Position yourself** - Make sure your hand is visible to the camera
 3. **Draw**: 
    - Point with your index finger (like pointing at something)
    - Move your finger around to draw on the white canvas
    - The app uses smoothing to make your lines cleaner
-4. **Adjust brush size**:
+4. **Toggle webcam**:
+   - Press `V` to hide/show the webcam preview
+   - The webcam is hidden by default for a cleaner canvas
+   - You can still draw with it hidden!
+5. **Adjust brush size**:
    - Press `+` to make the brush larger
    - Press `-` to make the brush smaller
    - Perfect for drawing fine details or bold strokes!
-5. **Change colors**:
+6. **Change colors**:
    - Open your palm (show all 5 fingers)
    - Move your hand over a color in the palette at the top
-6. **Use eraser**:
+7. **Use eraser**:
    - Open your palm
    - Move over the "ERASE" button
-7. **Clear everything**:
+8. **Clear everything**:
    - Open your palm and move over "CLEAR" button, OR
    - Press 'C' on your keyboard
-8. **Save your art**:
+9. **Save your art**:
    - Press 'S' on your keyboard
 
 ## Tips for Best Results
 
 - 🔆 Ensure good lighting for better hand detection
-- 🖐️ Keep your hand clearly visible in the video preview (bottom right corner)
+- 🖐️ Keep your hand clearly visible in the camera view
 - 📏 Maintain a moderate distance from the camera (arm's length works well)
 - 🎨 Practice the gestures - it becomes natural quickly!
 - 🔄 If tracking is lost, simply reposition your hand in view
 - ✏️ Use smaller brush sizes (1-3px) for fine details like dots
 - 🖌️ Use larger brush sizes (10-20px) for bold strokes
 - 🤚 Hold your drawing gesture steady for smoother lines
-- 📺 The white canvas is your main workspace - the video preview just shows hand tracking
+- 📺 Press 'V' to hide the webcam for a cleaner, distraction-free canvas
+- 🎯 The entire white area is your canvas - draw anywhere!
 
 ## Architecture
 

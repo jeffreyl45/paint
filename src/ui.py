@@ -130,7 +130,7 @@ class UI:
         cv2.putText(frame, label, (text_x, text_y), 
                    cv2.FONT_HERSHEY_SIMPLEX, text_scale, (0, 0, 0), text_thickness)
     
-    def draw_buttons(self, frame, eraser_mode, brush_size):
+    def draw_buttons(self, frame, eraser_mode, brush_size, show_webcam=False):
         """
         Draw all control buttons and brush size indicator.
         
@@ -138,6 +138,7 @@ class UI:
             frame: Frame to draw on
             eraser_mode: Whether eraser mode is active
             brush_size: Current brush size
+            show_webcam: Whether webcam is visible
         """
         width = frame.shape[1]
         scale = self.get_scale_factor(width)
@@ -181,6 +182,17 @@ class UI:
                    cv2.FONT_HERSHEY_SIMPLEX, brush_text_scale * 0.8, (100, 100, 100), 
                    max(1, brush_text_thickness - 1))
         
+        # Webcam indicator (small icon/text)
+        webcam_x = brush_x - int(100 * scale)
+        webcam_status = "Cam:ON" if show_webcam else "Cam:OFF"
+        webcam_color = (0, 200, 0) if show_webcam else (150, 150, 150)
+        cv2.putText(frame, webcam_status, (webcam_x, brush_y), 
+                   cv2.FONT_HERSHEY_SIMPLEX, brush_text_scale * 0.9, webcam_color, 
+                   brush_text_thickness)
+        cv2.putText(frame, "[v]", (webcam_x, brush_y + int(25 * scale)), 
+                   cv2.FONT_HERSHEY_SIMPLEX, brush_text_scale * 0.8, (100, 100, 100), 
+                   max(1, brush_text_thickness - 1))
+        
         # Store button positions for click detection
         self.eraser_button_bounds = (eraser_x1, button_y1, eraser_x2, button_y2)
         self.clear_button_bounds = (clear_x1, button_y1, clear_x2, button_y2)
@@ -199,19 +211,19 @@ class UI:
         if width < 600:
             instructions = [
                 "Point to draw | Palm to select",
-                "+/- brush | s:save | c:clear | q:quit"
+                "+/- brush | v:cam | s:save | c:clear | q:quit"
             ]
         elif width < 800:
             instructions = [
                 "Point finger to draw",
                 "Palm (5 fingers) to select",
-                "+/- brush | s:save | c:clear | q:quit"
+                "+/- brush | v:cam | s:save | c:clear | q:quit"
             ]
         else:
             instructions = [
                 "Point index finger to draw",
                 "Show palm (5 fingers) to select color/button",
-                "Press '+'/'-' to adjust brush | 's' to save | 'q' to quit | 'c' to clear all" 
+                "Press '+'/'-' brush | 'v' webcam | 's' save | 'c' clear | 'q' quit" 
             ]
         
         text_scale = 0.3 + (0.2 * scale)
@@ -241,7 +253,7 @@ class UI:
         cv2.putText(frame, status, (10, h - int(100 * scale)), 
                    cv2.FONT_HERSHEY_SIMPLEX, text_scale, (0, 255, 0), text_thickness)
     
-    def draw(self, frame, current_color, eraser_mode, status, brush_size):
+    def draw(self, frame, current_color, eraser_mode, status, brush_size, show_webcam=False):
         """
         Draw all UI elements on the frame.
         
@@ -251,9 +263,10 @@ class UI:
             eraser_mode: Whether eraser mode is active
             status: Status message to display
             brush_size: Current brush size
+            show_webcam: Whether webcam is visible
         """
         self.draw_color_palette(frame, current_color, eraser_mode)
-        self.draw_buttons(frame, eraser_mode, brush_size)
+        self.draw_buttons(frame, eraser_mode, brush_size, show_webcam)
         self.draw_instructions(frame)
         self.draw_status(frame, status)
     
